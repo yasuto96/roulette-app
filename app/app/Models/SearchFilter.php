@@ -1,0 +1,17 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+// app/Models/SearchFilter.php
+class SearchFilter extends Model
+{
+    protected $fillable = ['member_id','name','criteria'];
+    protected $casts = ['criteria' => 'array'];
+
+    public function member(){ return $this->belongsTo(Member::class); }
+}
+
+
