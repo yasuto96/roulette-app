@@ -3,13 +3,12 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use App\Models\Restaurant;
 
-class DatabaseSeeder extends Seeder
+class RestaurantSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([
-            RestaurantSeeder::class,
-        ]);
+        Restaurant::factory()->count(10)->create();
     }
 }
