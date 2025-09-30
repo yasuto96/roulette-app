@@ -9,6 +9,11 @@ class RestaurantCuisine extends Model
 {
     use HasFactory;
 
+    public function cuisines()
+    {
+        return $this->belongsToMany(Cuisine::class, 'restaurant_cuisines', 'restaurant_id', 'cuisine_id');
+    }
+
     // 明示的にテーブル名を指定
     protected $table = 'restaurant_cuisines';
 
