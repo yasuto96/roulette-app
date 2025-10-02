@@ -20,10 +20,45 @@ class RouletteController extends Controller
     }
 
     /** 公開：カテゴリルーレット（フォーム表示） */
-    public function categoryForm()
+    public function categoryForm(Request $request)
     {
-        $cuisines = Cuisine::orderBy('name')->get();
-        return view('roulette.category', compact('cuisines'));
+        // reset=1 のときは保持選択をクリア
+        if ($request->boolean('reset')) {
+            $request->session()->forget('roulette.selected_cuisine_ids');
+            $request->session()->forget('roulette.visible_cuisine_ids');
+        }
+
+        // デフォルトで見せる6カテゴリ（順番も固定）
+        $defaults = ['カフェ', 'イタリアン', '寿司', '焼肉', '中華', 'ラーメン'];
+
+        if ($request->boolean('reset')) {
+            // 念のため、存在しなければ作成（種別マスタとして常に出せるように）
+            foreach ($defaults as $name) {
+                Cuisine::firstOrCreate(['name' => $name]);
+            }
+
+            // 表示は6件だけ＆並びも指定順で
+            $cuisines = Cuisine::whereIn('name', $defaults)
+                ->orderByRaw('FIELD(name, ?, ?, ?, ?, ?, ?)', $defaults)
+                ->get();
+        } else {
+            // ★ 前回表示していた集合があればそれを優先表示
+            $visibleIds = $request->session()->get('roulette.visible_cuisine_ids', []);
+            if (!empty($visibleIds)) {
+                $ids = array_map('intval', $visibleIds);
+                $in  = implode(',', $ids);
+                $cuisines = \App\Models\Cuisine::whereIn('id', $ids)
+                    ->orderByRaw("FIELD(id, {$in})")
+                    ->get();
+            }else {
+                // resetなし（結果→戻る等）は全件を名前順で
+                $cuisines = Cuisine::orderBy('name')->get();
+            }
+        }
+        // 直前の選択を復元（なければ空配列）
+        $selectedIds = $request->session()->get('roulette.selected_cuisine_ids', []);
+
+        return view('roulette.category', compact('cuisines', 'selectedIds'));
     }
 
     /** 公開：カテゴリルーレット（抽選） */
@@ -33,6 +68,9 @@ class RouletteController extends Controller
             'cuisine_ids'   => 'nullable|array',
             'cuisine_ids.*' => 'integer|exists:cuisines,id',
             'new_cuisine'   => 'nullable|string|max:50',
+            // ★ 表示されていたIDを受け取る
+            'visible_ids'   => 'nullable|array',
+            'visible_ids.*' => 'integer|exists:cuisines,id',
         ]);
 
         $selected = collect($data['cuisine_ids'] ?? []);
@@ -43,8 +81,14 @@ class RouletteController extends Controller
             if ($name !== '') {
                 $created = Cuisine::firstOrCreate(['name' => $name]);
                 $selected->push($created->id);
+                // 追加された分は visibleIds にも含めたい（念のため）
+                $data['visible_ids'][] = $created->id;
             }
         }
+
+        // ★ 「その時画面に出ていたID」も保存（戻る時に同じ集合を表示）
+        $visible = collect($data['visible_ids'] ?? [])->map(fn($v)=>(int)$v)->unique()->values();
+        $request->session()->put('roulette.visible_cuisine_ids', $visible->all());
 
         // 何も選ばれていなければ全カテゴリから
         if ($selected->isEmpty()) {
@@ -55,6 +99,9 @@ class RouletteController extends Controller
             // DBにカテゴリが1件も無いときのフェイルセーフ
             return redirect()->route('roulette.result', ['src' => 'category']);
         }
+
+        // ★ 直前選択をセッションに保持（結果→戻るでそのまま使う）
+        $request->session()->put('roulette.selected_cuisine_ids', $selected->values()->all());
 
         // カテゴリだけを抽選
         $pickedId = $selected->random();

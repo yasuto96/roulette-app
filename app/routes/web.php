@@ -21,6 +21,12 @@ Route::prefix('roulette')->name('roulette.')->group(function () {
     Route::get('/result', [RouletteController::class, 'result'])->name('result'); // 結果表示（共通）
 });
 
+Route::post('/cuisines', [\App\Http\Controllers\CuisineController::class, 'store'])
+    ->name('cuisines.store');
+
+
+
+
 // 会員限定（履歴・お気に入り・検索ルーレット）
 Route::middleware('auth')->group(function () {
 
@@ -38,6 +44,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/search/spin', [RouletteController::class, 'searchSpin'])->name('search.spin'); // 条件に合う店舗から抽選
         // 結果表示は上の /roulette/result を共通利用
     });
+
+    // 選択削除（会員のみ推奨）
+    Route::delete('/cuisines/bulk-delete', [CuisineController::class, 'destroyMany'])
+        ->name('cuisines.destroyMany');
+
 });
 
 // （必要なら）管理者向けの一覧

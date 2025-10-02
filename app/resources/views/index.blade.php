@@ -2,7 +2,7 @@
   <div class="py-6 max-w-4xl mx-auto">
     <h1 class="text-xl font-semibold">トップ</h1>
     <ul class="list-disc pl-6 mt-3 space-y-1">
-      <li><a class="underline" href="{{ route('roulette.category.form') }}">カテゴリ・ルーレット</a></li>
+      <a href="{{ route('roulette.category.form', ['reset' => 1]) }}">カテゴリ・ルーレット</a>
       <li><a class="underline" href="{{ route('cuisines.index') }}">カテゴリ一覧</a></li>
       @auth
         <li><a class="underline" href="{{ route('roulette.search.form') }}">検索ルーレット（会員限定）</a></li>
