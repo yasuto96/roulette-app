@@ -65,3 +65,57 @@
 - GitHub
 
 ---
+## ⚙️ Installation（ローカル環境構築）
+1. Clone this repository
+2. composer install
+3. npm install
+4. .env設定
+5. docker-compose up -d
+6. php artisan migrate --seed
+7. http://localhost
+
+---
+## 📁 Directory Structure（一部抜粋）
+docker-env/
+├─ app/
+│ ├─ Http/
+│ │ ├─ Controllers/
+│ │ ├─ Middleware/
+│ │ └─ Requests/
+│ ├─ Models/
+│ └─ Providers/
+├─ bootstrap/
+├─ config/
+├─ database/
+│ ├─ migrations/
+│ ├─ seeders/
+│ └─ factories/
+├─ public/
+│ ├─ images/
+│ ├─ css/
+│ └─ js/
+├─ resources/
+│ ├─ views/
+│ │ ├─ roulette/
+│ │ ├─ search/
+│ │ ├─ favorites/
+│ │ ├─ admin/
+│ │ └─ layouts/
+│ ├─ css/
+│ └─ js/
+├─ routes/
+│ ├─ web.php
+│ └─ api.php
+├─ storage/
+└─ docker/
+├─ nginx/
+├─ php/
+└─ mysql/
+
+---
+##👤 Author
+yasuto96
+・GitHub:　https://github.com/yasuto96
+
+---
+
