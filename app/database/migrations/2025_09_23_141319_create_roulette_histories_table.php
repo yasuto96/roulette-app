@@ -1,48 +1,31 @@
+// database/migrations/2025_10_09_150000_add_fields_to_roulette_histories.php
 <?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateRouletteHistoriesTable extends Migration
-{
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-   public function up(): void
+return new class extends Migration {
+    public function up(): void
     {
-        Schema::create('roulette_histories', function (Blueprint $table) {
-            $table->id();
-
-            // 誰の履歴か（会員に紐づけ）
-            $table->foreignId('member_id')
-                  ->constrained('members')
-                  ->cascadeOnDelete();
-
-            // ユーザーが付ける任意の名前（同一ユーザー内で一意にしたい場合は unique を複合で）
-            $table->string('name', 50);
-
-            // 抽選条件（距離、予算、ジャンル配列など柔軟に持てる）
-            $table->json('criteria');
-
-            $table->timestamps();
-
-            // 同一ユーザー内で同名を禁止したい場合（任意）
-            $table->unique(['member_id', 'name']);
+        Schema::table('roulette_histories', function (Blueprint $table) {
+            // 行ってみるを押した日（作成時に now() を入れる）
+            $table->dateTime('visited_at')->nullable()->after('criteria');
+            // 自分の評価(1〜5)
+            $table->unsignedTinyInteger('my_rating')->nullable()->after('visited_at');
+            // コメント
+            $table->text('memo')->nullable()->after('my_rating');
+            // 店舗ID（お気に入り連携に使う）
+            $table->foreignId('restaurant_id')->nullable()->after('member_id')
+                ->constrained('restaurants')->nullOnDelete();
         });
-    }   
-
-
-    
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
-    {
-        Schema::dropIfExists('admin_exports');
     }
-}
+
+    public function down(): void
+    {
+        Schema::table('roulette_histories', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('restaurant_id');
+            $table->dropColumn(['visited_at','my_rating','memo']);
+        });
+    }
+};

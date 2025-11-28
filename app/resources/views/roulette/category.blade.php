@@ -1,10 +1,25 @@
 <x-app-layout>
   <div class="py-6 max-w-3xl mx-auto">
+    {{-- 右上：検索ルーレットへ（絶対配置 & サイズUP） --}}
+    @auth
+      <div class="relative">
+        <a href="{{ route('roulette.search.form') ?? url('/roulette/search') }}"
+          class="absolute right-0 -mt-2 inline-flex items-center justify-center
+                  rounded-full border border-black bg-white text-black font-bold
+                  hover:bg-gray-50 shadow-sm leading-none"
+          style="padding: 14px 22px; font-size: 18px; line-height: 1;">
+          検索ルーレットへ
+        </a>
+      </div>
+      {{-- ボタンが重ならないように少し余白を付ける --}}
+      <div class="pt-16"></div>
+    @endauth
 
     {{-- ルーレット（Canvas） --}}
     <div id="wheel-area" class="max-w-xl mx-auto mb-6">
-      <h2 class="text-2xl font-semibold text-center mb-2">カテゴリルーレット</h2>
-
+      <h2 class="text-center" style="font-size:40px; font-weight:1000; line-height:1.0; letter-spacing:.02em; margin:8px 0 14px;">
+        カテゴリルーレット
+      </h2>
       <div class="relative flex flex-col items-center">
         <!-- 枠線クラスを外す -->
         <canvas id="roulette-canvas" width="380" height="380"
@@ -29,6 +44,7 @@
         </div>
 
       </div>
+      
 
       <div class="mt-3 flex gap-2 justify-center">
         <button type="button" id="spin-btn"  class="px-4 py-2 rounded bg-blue-600 text-white">回す！</button>
@@ -331,6 +347,83 @@
 
   build();
 })();
+// 先頭で判定
+const isLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
+const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+// 既存：getBoxes(), syncMaster() はそのまま
+
+// A) 初期ロード時：ユーザー状態を反映（初回はサーバで初期化→返却）
+async function applyUserStatesIfAny(){
+  if (!isLoggedIn) return; // ゲストは何もしない（あなたの従来通り）
+
+  try{
+    const res = await fetch('{{ route('user.cuisine.states.index') }}', {headers:{'Accept':'application/json'}});
+    if(!res.ok) throw 0;
+    const j = await res.json(); // {states:[{cuisine_id,is_checked},...]}
+
+    // いったん全部OFFにしてから反映（安全）
+    getBoxes().forEach(cb => cb.checked = false);
+
+    const map = new Map(j.states.map(s => [String(s.cuisine_id), !!s.is_checked]));
+    getBoxes().forEach(cb => {
+      if (map.has(cb.value)) cb.checked = map.get(cb.value);
+    });
+
+    syncMaster();
+  }catch(e){
+    console.warn('[cuisine-states] load failed', e);
+  }
+}
+
+// B) 1件変更の都度、即時保存
+async function saveOneState(cuisineId, isChecked){
+  if (!isLoggedIn) return;
+  try{
+    await fetch('{{ route('user.cuisine.states.upsert') }}', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'X-CSRF-TOKEN': csrf || '',
+        'Accept':'application/json'
+      },
+      body: JSON.stringify({ cuisine_id: cuisineId, is_checked: !!isChecked })
+    });
+  }catch(e){ console.warn('[cuisine-states] save failed', e); }
+}
+
+// 既存：個別変更イベントに保存を追加
+listEl.addEventListener('change', e => {
+  if (e.target && e.target.name === 'cuisine_ids[]') {
+    syncMaster();
+    rotation = 0; build();
+    saveOneState(parseInt(e.target.value,10), e.target.checked); // ★
+  }
+});
+
+// “全件まとめて選択” も保存
+window.rouletteToggleAll = function(on){
+  selectAll.checked = !!on;
+  const boxes = getBoxes();
+  boxes.forEach(cb => cb.checked = !!on);
+  syncMaster(); rotation = 0; build();
+
+  if (isLoggedIn) {
+    boxes.forEach(cb => saveOneState(parseInt(cb.value,10), cb.checked));
+  }
+};
+
+// 最後の初期化手順
+(async () => {
+  if (selectAll) {
+    // ひとまず UI は全ONにしておく（ゲスト時の見た目崩れ防止）
+    window.rouletteToggleAll?.(true);
+    syncMaster();
+  }
+  await applyUserStatesIfAny(); // ログイン時：サーバの状態を適用（初回は固定集合ON）
+  build();
+})();
+
 </script>
 
 </x-app-layout>

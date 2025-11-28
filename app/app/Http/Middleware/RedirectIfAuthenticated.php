@@ -23,10 +23,16 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                return redirect(RouteServiceProvider::HOME);
+
+                // 管理者でログイン済みなら管理者トップへ
+                if ($guard === 'admin') {
+                    return redirect()->route('admin.users.index'); // or admin.dashboard
+                }
+
+                // 一般ユーザーでログイン済みなら一般側トップへ
+                return redirect()->route('top');
             }
         }
-
         return $next($request);
     }
 }

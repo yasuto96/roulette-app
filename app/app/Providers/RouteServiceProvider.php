@@ -17,7 +17,7 @@ class RouteServiceProvider extends ServiceProvider
      *
      * @var string
      */
-    public const HOME = '/dashboard';
+    public const HOME = '/roulette/search'; // 実店舗ルーレット（検索フォーム）
 
     /**
      * The controller namespace for the application.
